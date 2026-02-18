@@ -14,20 +14,22 @@ class TestUserSeeder extends Seeder
     public function run(): void
     {
         // Create Admin User
-        $admin = User::firstOrCreate(
+        $admin = User::updateOrCreate(
             ['email' => 'admin@example.com'],
             [
                 'name' => 'Admin User',
                 'phone' => '+1234567890',
                 'password' => Hash::make('Admin@123'),
                 'verified_at' => now(),
+                'status' => 'active',
+                'address' => '123 Admin Street, City, State 12345',
             ]
         );
         $admin->assignRole('admin');
         $this->command->info('Admin user created: admin@example.com / password');
 
         // Create Client User
-        $client = User::firstOrCreate(
+        $client = User::updateOrCreate(
             ['email' => 'client@example.com'],
             [
                 'name' => 'Test Client',
@@ -35,13 +37,14 @@ class TestUserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'verified_at' => now(),
                 'address' => '123 Main Street, City, State 12345',
+                'status' => 'active',
             ]
         );
         $client->assignRole('client');
         $this->command->info('Client user created: client@example.com / password');
 
         // Create Vehicle Owner User
-        $vehicleOwner = User::firstOrCreate(
+        $vehicleOwner = User::updateOrCreate(
             ['email' => 'owner@example.com'],
             [
                 'name' => 'Vehicle Owner',
@@ -49,13 +52,14 @@ class TestUserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'verified_at' => now(),
                 'address' => '456 Business Park, City, State 12345',
+                'status' => 'active',
             ]
         );
         $vehicleOwner->assignRole('vehicle_owner');
         $this->command->info('Vehicle Owner user created: owner@example.com / password');
 
         // Create Driver User
-        $driver = User::firstOrCreate(
+        $driver = User::updateOrCreate(
             ['email' => 'driver@example.com'],
             [
                 'name' => 'Test Driver',
@@ -79,13 +83,14 @@ class TestUserSeeder extends Seeder
         $this->command->info('Driver user created: driver@example.com / password');
 
         // Create another Client for testing
-        $client2 = User::firstOrCreate(
+        $client2 = User::updateOrCreate(
             ['email' => 'client2@example.com'],
             [
                 'name' => 'Another Client',
                 'phone' => '+1234567894',
                 'password' => Hash::make('password'),
                 'verified_at' => now(),
+                'status' => 'active',
             ]
         );
         $client2->assignRole('client');

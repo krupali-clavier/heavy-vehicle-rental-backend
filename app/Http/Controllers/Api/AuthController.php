@@ -212,7 +212,7 @@ class AuthController extends ApiBaseController
             }
         }
 
-        return $this->sendResponse([], 'OTP sent successfully', 200);
+        return $this->sendResponse($otp, 'OTP sent successfully', 200);
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Document;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -18,7 +19,7 @@ return new class extends Migration
             $table->timestamp('verified_at')->nullable()->after('phone');
             // Note: OTP fields moved to separate 'otps' table
             $table->text('address')->nullable()->after('verified_at');
-            $table->string('profile_image')->nullable()->after('address');
+            $table->foreignIdFor(Document::class, 'profile_image')->nullable()->after('address');
             $table->decimal('hourly_rate', 10, 2)->default(0)->nullable()->after('profile_image');
             $table->boolean('is_available')->default(true)->after('hourly_rate');
             $table->enum('status', ['pending', 'active', 'inactive', 'rejected', 'suspended'])->default('pending')->after('is_available');
