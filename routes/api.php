@@ -19,6 +19,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
+    Route::post('/password/reset', [AuthController::class, 'resetPassword']);
     Route::post('/social-login', [AuthController::class, 'socialLogin']);
 });
 

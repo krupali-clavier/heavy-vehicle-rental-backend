@@ -353,15 +353,6 @@ class AuthController extends ApiBaseController
     }
 
     /**
-     * Google OAuth login (stub)
-     */
-    public function google(Request $request)
-    {
-        // TODO: Implement Google OAuth login
-        return $this->sendResponse([], 'Google login not implemented yet.', 501);
-    }
-
-    /**
      * Get authenticated user
      */
     public function me()
@@ -385,8 +376,51 @@ class AuthController extends ApiBaseController
                 'expires_in' => JWTAuth::factory()->getTTL() * 60,
             ], 'Token refreshed successfully');
         } catch (\Exception $e) {
-            return $this->sendResponse([], 'Could not refresh token', 401);
+            return $this->sendResponse([
+                'error' => $e->getMessage(),
+            ], 'Could not refresh token', 401);
         }
+    }
+
+    /**
+     * Reset password using email and OTP
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'login_type' => 'required|in:email,phone',
+            'email' => 'required_if:login_type,email|email|exists:users,email',
+            'phone' => 'required_if:login_type,phone|exists:users,phone',
+            'otp' => 'required|string|size:6',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Check OTP validity
+        $otp = Otp::where([
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'otp' => $request->otp,
+            'type' => $request->login_type.'_verification',
+            'is_used' => false,
+        ])->where('expires_at', '>', now())->first();
+
+        if (! $otp) {
+            return $this->sendResponse([], 'Invalid or expired OTP', 401);
+        }
+
+        $user = User::where($request->login_type, $request->{$request->login_type})->first();
+        if (! $user) {
+            return $this->sendResponse([], 'User not found', 404);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        // Mark OTP as used
+        $otp->markAsUsed();
+
+        return $this->sendResponse([], 'Password reset successfully', 200);
     }
 
     /**
