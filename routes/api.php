@@ -1,10 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\UsersController;
+use App\Http\Controllers\Api\Admin\VehicleController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\TripController;
-use App\Http\Controllers\Api\VehicleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,11 +36,11 @@ Route::middleware('auth:api')->group(function () {
         // Users
         Route::apiResource('users', UsersController::class);
         Route::patch('users/{user}/status', [UsersController::class, 'updateStatus']); // Suspend/activate user
-    });
 
-    // Vehicles
-    Route::apiResource('vehicles', VehicleController::class);
-    Route::get('vehicles/{vehicle}/availability', [VehicleController::class, 'checkAvailability']);
+        // Vehicles
+        Route::apiResource('vehicles', VehicleController::class);
+        Route::get('vehicles/{vehicle}/availability', [VehicleController::class, 'checkAvailability']);
+    });
 
     // Bookings
     Route::apiResource('bookings', BookingController::class);
