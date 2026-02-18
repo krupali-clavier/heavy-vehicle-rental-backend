@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Twilio\Rest\Client;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -164,7 +165,14 @@ class AuthController extends ApiBaseController
                 $user->assignRole($request->role);
                 $otp->update(['user_id' => $user->id]);
             }
-            // TODO: Send OTP via email service
+            try {
+                Mail::raw("Your HeavyRent OTP is: {$otpCode}. It expires in 10 minutes.", function ($message) use ($request) {
+                    $message->to($request->email)
+                        ->subject('Your HeavyRent OTP');
+                });
+            } catch (\Exception $e) {
+                return $this->sendResponse([], 'Failed to send OTP via email', 500);
+            }
         } else {
             $user = User::where('phone', $request->phone)->first();
             Otp::forPhone($request->phone)
@@ -189,13 +197,14 @@ class AuthController extends ApiBaseController
             try {
                 $sid = env('TWILIO_SID');
                 $token = env('TWILIO_AUTH_TOKEN');
+                $from = env('TWILIO_FROM');
                 $twilio = new Client($sid, $token);
 
                 $verification_check = $twilio->verify->v2->services(env('TWILIO_VERIFY_SERVICE_SID'))
                     ->verificationChecks
                     ->create([
-                        'to' => '+14472841344',
-                        'code' => '123456',
+                        'to' => $request->phone,
+                        'code' => $otpCode,
                     ]
                     );
 
