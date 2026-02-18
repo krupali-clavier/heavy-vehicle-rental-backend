@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Api\ApiBaseController;
-use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class UsersController extends ApiBaseController
 {
@@ -33,20 +31,18 @@ class UsersController extends ApiBaseController
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
+            'id' => 'sometimes|exists:users,id',
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|unique:users,phone',
+            'email' => 'required|email|unique:users,email,'.$request->id.',id,deleted_at,NULL',
+            'phone' => 'required|string|unique:users,phone,'.$request->id.',id,deleted_at,NULL',
             'role' => 'required|in:client,vehicle_owner,driver,admin',
-            'status' => 'required|in:active,inactive',
-            'password' => 'required|string|min:8|confirmed',
+            'status' => 'required|in:active,inactive,suspended',
+            'password' => 'required_if:id,null|string|min:8',
         ]);
-        if ($validator->fails()) {
-            return $this->sendError('Validation error', $validator->errors(), 422);
-        }
         $user = $this->userService->createUser($request->all());
 
-        return $this->sendResponse(new UserResource($user), 'User created successfully', 201);
+        return $this->sendResponse($user, 'User '.($request->id ? 'updated' : 'created').' successfully', 201);
     }
 
     /**
@@ -54,7 +50,7 @@ class UsersController extends ApiBaseController
      */
     public function show(User $user)
     {
-        return $this->sendResponse(new UserResource($user), 'User details fetched successfully');
+        return $this->sendResponse($user, 'User details fetched successfully');
     }
 
     /**
@@ -62,20 +58,12 @@ class UsersController extends ApiBaseController
      */
     public function update(Request $request, User $user)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,'.$user->id,
-            'phone' => 'sometimes|required|string|unique:users,phone,'.$user->id,
-            'role' => 'sometimes|required|in:client,vehicle_owner,driver,admin',
-            'status' => 'sometimes|required|in:active,inactive',
-            'password' => 'nullable|string|min:8|confirmed',
+        $request->validate([
+            'status' => 'required|in:active,inactive,suspended',
         ]);
-        if ($validator->fails()) {
-            return $this->sendError('Validation error', $validator->errors(), 422);
-        }
-        $user = $this->userService->updateUser($user, $request->all());
+        $user = $this->userService->updateUserStatus($user, $request->status);
 
-        return $this->sendResponse(new UserResource($user), 'User updated successfully');
+        return $this->sendResponse($user, 'User status updated successfully');
     }
 
     /**
@@ -86,21 +74,5 @@ class UsersController extends ApiBaseController
         $this->userService->deleteUser($user);
 
         return $this->sendResponse([], 'User deleted successfully');
-    }
-
-    /**
-     * Suspend or activate a user (status update)
-     */
-    public function updateStatus(Request $request, User $user)
-    {
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|in:active,inactive',
-        ]);
-        if ($validator->fails()) {
-            return $this->sendError('Validation error', $validator->errors(), 422);
-        }
-        $user = $this->userService->updateUserStatus($user, $request->status);
-
-        return $this->sendResponse(new UserResource($user), 'User status updated successfully');
     }
 }

@@ -21,6 +21,8 @@ class UserService
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
+
+        $query->with('roles')->orderBy('created_at', 'desc');
         // Add more filters as needed
         $users = $query->paginate($filters['per_page'] ?? 15);
 
@@ -43,7 +45,7 @@ class UserService
      */
     public function createUser(array $data): User
     {
-        $user = new User;
+        $user = User::find($data['id']) ?? new User;
         $user->name = $data['name'];
         $user->email = $data['email'];
         $user->phone = $data['phone'];
