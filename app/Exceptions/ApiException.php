@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 class ApiException extends Exception
 {
     protected $statusCode;
+
     protected $errors;
 
     public function __construct(string $message = '', int $statusCode = 500, array $errors = [])
@@ -30,9 +31,8 @@ class ApiException extends Exception
     public function render(): JsonResponse
     {
         return response()->json([
-            'success' => false,
             'message' => $this->getMessage() ?: 'An error occurred',
-            'errors' => $this->errors,
+            'data' => $this->errors,
         ], $this->statusCode);
     }
 }

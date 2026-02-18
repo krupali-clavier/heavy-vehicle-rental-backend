@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -21,9 +20,7 @@ class TestUserSeeder extends Seeder
                 'name' => 'Admin User',
                 'phone' => '+1234567890',
                 'password' => Hash::make('Admin@123'),
-                'is_verified' => true,
-                'phone_verified_at' => now(),
-                'email_verified_at' => now(),
+                'verified_at' => now(),
             ]
         );
         $admin->assignRole('admin');
@@ -36,9 +33,7 @@ class TestUserSeeder extends Seeder
                 'name' => 'Test Client',
                 'phone' => '+1234567891',
                 'password' => Hash::make('password'),
-                'is_verified' => true,
-                'phone_verified_at' => now(),
-                'email_verified_at' => now(),
+                'verified_at' => now(),
                 'address' => '123 Main Street, City, State 12345',
             ]
         );
@@ -52,9 +47,7 @@ class TestUserSeeder extends Seeder
                 'name' => 'Vehicle Owner',
                 'phone' => '+1234567892',
                 'password' => Hash::make('password'),
-                'is_verified' => true,
-                'phone_verified_at' => now(),
-                'email_verified_at' => now(),
+                'verified_at' => now(),
                 'address' => '456 Business Park, City, State 12345',
             ]
         );
@@ -68,9 +61,7 @@ class TestUserSeeder extends Seeder
                 'name' => 'Test Driver',
                 'phone' => '+1234567893',
                 'password' => Hash::make('password'),
-                'is_verified' => true,
-                'phone_verified_at' => now(),
-                'email_verified_at' => now(),
+                'verified_at' => now(),
                 'address' => '789 Driver Lane, City, State 12345',
                 // Driver-specific fields
                 'license_number' => 'DL123456789',
@@ -94,9 +85,7 @@ class TestUserSeeder extends Seeder
                 'name' => 'Another Client',
                 'phone' => '+1234567894',
                 'password' => Hash::make('password'),
-                'is_verified' => true,
-                'phone_verified_at' => now(),
-                'email_verified_at' => now(),
+                'verified_at' => now(),
             ]
         );
         $client2->assignRole('client');

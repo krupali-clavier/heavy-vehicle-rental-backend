@@ -21,9 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Illuminate\Validation\ValidationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $e->errors(),
+                    'message' => $e->getMessage() ?: 'Validation failed',
+                    'data' => implode(', ', array_values(array_column($e->errors(), '0'))),
                 ], 422);
             }
         });
@@ -32,8 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Token has expired',
+                    'message' => $e->getMessage() ?: 'Unauthenticated',
                 ], 401);
             }
         });
@@ -41,8 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Token is invalid',
+                    'message' => $e->getMessage() ?: 'Token is invalid',
                 ], 401);
             }
         });
@@ -50,8 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Tymon\JWTAuth\Exceptions\JWTException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Token error',
+                    'message' => $e->getMessage() ?: 'Token error',
                 ], 401);
             }
         });
@@ -60,7 +56,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'success' => false,
                     'message' => 'Resource not found',
                 ], 404);
             }
@@ -70,7 +65,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'success' => false,
                     'message' => 'Unauthenticated',
                 ], 401);
             }
@@ -80,8 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized. ' . $e->getMessage(),
+                    'message' => 'Unauthorized. '.$e->getMessage(),
                 ], 403);
             }
         });
@@ -98,14 +91,13 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 $message = $e->getMessage() ?: 'An error occurred';
-                
+
                 // Don't expose internal errors in production
-                if (!config('app.debug') && $statusCode === 500) {
+                if (! config('app.debug') && $statusCode === 500) {
                     $message = 'Internal server error';
                 }
 
                 $response = [
-                    'success' => false,
                     'message' => $message,
                 ];
 

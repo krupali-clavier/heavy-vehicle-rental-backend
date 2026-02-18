@@ -1,11 +1,10 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\TripController;
+use App\Http\Controllers\Api\VehicleController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +19,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
-    Route::post('/google', [AuthController::class, 'google']);
+    Route::post('/social-login', [AuthController::class, 'socialLogin']);
 });
 
 // Protected routes

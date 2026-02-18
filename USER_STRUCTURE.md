@@ -7,6 +7,7 @@ All users (clients, vehicle owners, drivers, and admins) are stored in the **sin
 ## User Roles
 
 Roles are managed by Spatie (not an enum field). Available roles:
+
 - `client` - Regular users who rent vehicles
 - `vehicle_owner` - Users who own and list vehicles
 - `driver` - Users who drive vehicles (with driver-specific fields in users table)
@@ -15,23 +16,27 @@ Roles are managed by Spatie (not an enum field). Available roles:
 ## Database Structure
 
 ### Users Table
+
 All user accounts are stored here with:
+
 - Basic info: `name`, `email`, `phone`, `password`
 - Roles: Managed by Spatie Laravel Permission (no enum field)
-- Verification: `is_verified`, `phone_verified_at`, `email_verified_at`
+- Verification:`verified_at`
 - Profile: `address`, `profile_image`
 - OTP: `otp`, `otp_expires_at` (for phone verification)
-- Driver fields: `license_number`, `license_type`, `license_expiry_date`, `license_image`, `hourly_rate`, `is_available`, `driver_status`, `total_trips`, `rating`, `bio` (nullable, only for drivers)
+- Driver fields: `license_number`, `license_type`, `license_expiry_date`, `license_image`, `hourly_rate`, `is_available`, `status`, `total_trips`, `rating`, `bio` (nullable, only for drivers)
 
 ### Driver Fields in Users Table
+
 Driver-specific fields are stored directly in the `users` table (nullable fields):
+
 - `license_number` - Driver license number
 - `license_type` - Type of license
 - `license_expiry_date` - License expiration date
 - `license_image` - License document image
 - `hourly_rate` - Driver hourly rate
 - `is_available` - Driver availability status
-- `driver_status` - Status: pending, approved, rejected, suspended
+- `status` - Status: pending, approved, rejected, suspended
 - `total_trips` - Total number of trips completed
 - `rating` - Driver rating
 - `bio` - Driver bio/description
@@ -41,6 +46,7 @@ Driver-specific fields are stored directly in the `users` table (nullable fields
 ## Relationships
 
 ### User Model
+
 ```php
 // Check user role
 $user->isClient()        // Returns true if role is 'client'
@@ -54,6 +60,7 @@ $user->hasDriverProfile() // Returns true if user has driver profile
 ```
 
 ### Booking Model
+
 ```php
 $booking->client        // User model (the client who made the booking)
 $booking->driver        // Driver model (the driver profile)
@@ -61,6 +68,7 @@ $booking->driverUser    // User model (the driver user account)
 ```
 
 ### Trip Model
+
 ```php
 $trip->driver           // Driver model (the driver profile)
 $trip->driverUser       // User model (the driver user account)
@@ -69,6 +77,7 @@ $trip->driverUser       // User model (the driver user account)
 ## Examples
 
 ### Creating a Driver User
+
 ```php
 // Create user with driver role and driver-specific data
 $user = User::create([
@@ -80,7 +89,7 @@ $user = User::create([
     'license_type' => 'Commercial',
     'license_expiry_date' => '2025-12-31',
     'hourly_rate' => 25.00,
-    'driver_status' => 'pending',
+    'status' => 'pending',
 ]);
 
 // Assign driver role using Spatie
@@ -88,13 +97,14 @@ $user->assignRole('driver');
 ```
 
 ### Accessing Driver Information
+
 ```php
 // From a user
 $user = User::find(1);
 if ($user->isDriver()) {
     $licenseNumber = $user->license_number;
     $hourlyRate = $user->hourly_rate;
-    $driverStatus = $user->driver_status;
+    $driverStatus = $user->status;
 }
 
 // From a booking
@@ -116,6 +126,7 @@ if ($driver) {
 ## Migration Notes
 
 When creating users:
+
 - Always create them in the `users` table
 - Assign roles using Spatie: `$user->assignRole('driver')`
 - If role is 'driver', populate driver-specific fields (license_number, hourly_rate, etc.)

@@ -15,10 +15,9 @@ return new class extends Migration
             // Note: Roles are now managed by Spatie Laravel Permission package
             // No need for role enum field in users table
             $table->string('phone')->nullable()->after('email');
-            $table->timestamp('phone_verified_at')->nullable()->after('phone');
-            $table->boolean('is_verified')->default(false)->after('phone_verified_at');
+            $table->timestamp('verified_at')->nullable()->after('phone');
             // Note: OTP fields moved to separate 'otps' table
-            $table->text('address')->nullable()->after('is_verified');
+            $table->text('address')->nullable()->after('verified_at');
             $table->string('profile_image')->nullable()->after('address');
             $table->decimal('hourly_rate', 10, 2)->default(0)->nullable()->after('profile_image');
             $table->boolean('is_available')->default(true)->after('hourly_rate');
@@ -42,8 +41,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn([
                 'phone',
-                'phone_verified_at',
-                'is_verified',
+                'verified_at',
                 'address',
                 'profile_image',
                 'license_number',
@@ -52,7 +50,7 @@ return new class extends Migration
                 'license_image',
                 'hourly_rate',
                 'is_available',
-                'driver_status',
+                'status',
                 'total_trips',
                 'rating',
                 'bio',

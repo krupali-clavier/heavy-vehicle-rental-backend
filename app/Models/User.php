@@ -14,7 +14,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
      * The guard name for Spatie Permission
@@ -26,27 +26,7 @@ class User extends Authenticatable implements JWTSubject
      *
      * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'password',
-        'is_verified',
-        'address',
-        'profile_image',
-        'phone_verified_at',
-        // Driver-specific fields
-        'license_number',
-        'license_type',
-        'license_expiry_date',
-        'license_image',
-        'hourly_rate',
-        'is_available',
-        'driver_status',
-        'total_trips',
-        'rating',
-        'bio',
-    ];
+    protected $guarded = ['id'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -67,12 +47,10 @@ class User extends Authenticatable implements JWTSubject
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'phone_verified_at' => 'datetime',
+            'verified_at' => 'datetime',
             'otp_expires_at' => 'datetime',
             'license_expiry_date' => 'date',
             'password' => 'hashed',
-            'is_verified' => 'boolean',
             'is_available' => 'boolean',
             'hourly_rate' => 'decimal:2',
             'rating' => 'decimal:2',

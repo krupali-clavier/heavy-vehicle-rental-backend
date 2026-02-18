@@ -1,33 +1,20 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
-use Illuminate\Routing\Controller as BaseController;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 
-class ApiBaseController extends BaseController
+class ApiBaseController extends Controller
 {
     /**
-     * Send a success response
+     * Send a response
      */
-    protected function sendSuccess($data = [], $message = 'Success', $code = 200): JsonResponse
+    protected function sendResponse($data = [], $message = 'Success', $code = 200): JsonResponse
     {
         return response()->json([
-            'success' => true,
             'message' => $message,
             'data' => $data,
-        ], $code);
-    }
-
-    /**
-     * Send an error response
-     */
-    protected function sendError($message = 'Error', $errors = [], $code = 400): JsonResponse
-    {
-        return response()->json([
-            'success' => false,
-            'message' => $message,
-            'errors' => $errors,
         ], $code);
     }
 }

@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\ApiBaseController;
 use App\Http\Traits\ApiResponse;
 use App\Models\Otp;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Twilio\Rest\Client;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -22,17 +21,13 @@ class AuthController extends ApiBaseController
      */
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'required|string|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:client,vehicle_owner,driver',
         ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation error', $validator->errors(), 422);
-        }
 
         $user = User::create([
             'name' => $request->name,
@@ -46,11 +41,11 @@ class AuthController extends ApiBaseController
 
         $token = JWTAuth::fromUser($user);
 
-        return $this->sendSuccess([
+        return $this->sendResponse([
             'user' => $user,
             'token' => $token,
             'token_type' => 'bearer',
-        ], 'User registered successfully', 201);
+        ], 201);
     }
 
     /**
@@ -103,7 +98,10 @@ class AuthController extends ApiBaseController
             return response()->json(['message' => 'Your account is not active. Please contact the administrator.'], 403);
         }
         if (! $user->hasRole($request->role)) {
-            return $this->sendError('Validation error', $validator->errors(), 422);
+            return response()->json(['message' => 'Selected role is not valid for this user'], 401);
+        }
+
+        // Mark OTP as used
         $otpValid->markAsUsed();
 
         // Update device info
@@ -119,53 +117,25 @@ class AuthController extends ApiBaseController
 
         DB::commit();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Login Successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-                'token_type' => 'bearer',
-                'expires_in' => JWTAuth::factory()->getTTL() * 60,
-            ],
-        ]);
+        return $this->sendResponse([
+            'user' => $user,
+            'token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
+        ], 200);
     }
 
     /**
      * Send OTP to user's phone
      */
-    /*
-     * write a function to resend otp
-     */
-    // public function resendOtp(Request $request)
-    // {
-    //     $request->validate(['email' => 'required|email|exists:users,email,deleted_at,NULL']);
-
-    //     if (sendOtp($request->email, 'resend_otp')) {
-    //         return sendResponse(200, 'OTP sent successfully');
-    //     }
-
-    //     return sendResponse(
-    //         500,
-    //         'Something went wrong !',
-    //     );
-    // }
-
     public function sendOtp(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'login_type' => 'required|in:email,phone',
             'email' => 'required_if:login_type,email|email|exists:users,email,deleted_at,NULL',
             'phone' => 'required_if:login_type,phone|exists:users,phone,deleted_at,NULL',
             'role' => 'required|in:client,vehicle_owner,driver,admin',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         $otpCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         $user = null;
@@ -177,14 +147,22 @@ class AuthController extends ApiBaseController
             Otp::where('type', 'email_verification')
                 ->where('is_used', false)
                 ->where('expires_at', '>', now())
-                return $this->sendError('Failed to send OTP via SMS', ['exception' => $e->getMessage()], 500);
+                ->where('email', $request->email)
+                ->update(['is_used' => true]);
+            $otp = Otp::create([
+                'user_id' => $user?->id,
+                'email' => $request->email,
                 'otp' => $otpCode,
                 'type' => 'email_verification',
                 'expires_at' => now()->addMinutes(10),
-        return $this->sendSuccess([
-            'otp' => $otpCode, // Remove in production
-            'expires_in' => 600,
-        ], 'OTP sent successfully');
+                'ip_address' => $request->ip(),
+            ]);
+            if (! $user) {
+                $user = User::create([
+                    'email' => $request->email,
+                ]);
+                $user->assignRole($request->role);
+                $otp->update(['user_id' => $user->id]);
             }
             // TODO: Send OTP via email service
         } else {
@@ -201,7 +179,10 @@ class AuthController extends ApiBaseController
                 'ip_address' => $request->ip(),
             ]);
             if (! $user) {
-            return $this->sendError('Validation error', $validator->errors(), 422);
+                $user = User::create([
+                    'phone' => $request->phone,
+                ]);
+                $user->assignRole($request->role);
                 $otp->update(['user_id' => $user->id]);
             }
             // Send OTP via Twilio SMS
@@ -227,24 +208,19 @@ class AuthController extends ApiBaseController
                     ]
                 );
             } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to send OTP via SMS',
-                    'error' => $e->getMessage(),
-                ], 500);
+                return $this->sendResponse([], 'Failed to send OTP via SMS', 500);
             }
         }
 
-            return $this->sendError('Invalid or expired OTP', [], 401);
-                'otp' => $otpCode, // Remove in production
-                'expires_in' => 600,
-            ],
-            return $this->sendError('Too many attempts. Please request a new OTP.', [], 429);
+        return $this->sendResponse([], 'OTP sent successfully', 200);
+    }
+
+    /**
      * Verify OTP and return JWT token
      */
     public function verifyOtp(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'login_type' => 'required|in:email,phone',
             'email' => 'required_if:login_type,email|email',
             'phone' => 'required_if:login_type,phone',
@@ -252,25 +228,22 @@ class AuthController extends ApiBaseController
             'role' => 'required|in:client,vehicle_owner,driver,admin',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         $otp = null;
         $user = null;
         if ($request->login_type === 'email') {
             $otp = Otp::where('type', 'email_verification')
                 ->where('email', $request->email)
                 ->where('otp', $request->otp)
-        return $this->sendSuccess([
-            'user' => $user,
-            'token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => JWTAuth::factory()->getTTL() * 60,
-        ], 'OTP verified successfully');
+                ->valid()
+                ->first();
+            $user = $otp?->user ?? User::where('email', $request->email)->first();
+        } else {
+            $otp = Otp::forPhone($request->phone)
+                ->where('otp', $request->otp)
+                ->valid()
+                ->first();
+            $user = $otp?->user ?? User::where('phone', $request->phone)->first();
+        }
 
         if (! $otp) {
             if ($request->login_type === 'email') {
@@ -279,18 +252,18 @@ class AuthController extends ApiBaseController
                     ->where('otp', $request->otp)
                     ->where('expires_at', '>', now())
                     ->first()?->incrementAttempts();
-        return $this->sendError('Google login not implemented yet.', [], 501);
+            } else {
+                Otp::forPhone($request->phone)
+                    ->where('otp', $request->otp)
+                    ->where('expires_at', '>', now())
                     ->first()?->incrementAttempts();
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid or expired OTP',
-            ], 401);
-        return $this->sendSuccess([
-            'user' => auth()->user(),
-        ], 'User details fetched successfully');
-            ], 429);
+            return $this->sendResponse([], 'Invalid or expired OTP', 401);
+        }
+
+        if ($otp->attempts >= 5) {
+            return $this->sendResponse([], 'Too many attempts. Please request a new OTP.', 429);
         }
 
         if (! $user) {
@@ -300,32 +273,92 @@ class AuthController extends ApiBaseController
             } else {
                 $userData['phone'] = $request->phone;
             }
-            return $this->sendSuccess([
-                'token' => $token,
-                'token_type' => 'bearer',
-                'expires_in' => JWTAuth::factory()->getTTL() * 60,
-            ], 'Token refreshed successfully');
-        if ($request->login_type === 'email') {
-            return $this->sendError('Could not refresh token', [], 401);
+            $user = User::create($userData);
+            $user->assignRole($request->role);
+        } elseif (! $user->hasRole($request->role)) {
+            $user->assignRole($request->role);
+        }
+
+        $otp->markAsUsed();
+
+        $user->update(['verified_at' => now()]);
 
         $token = JWTAuth::fromUser($user);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'OTP verified successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-                'token_type' => 'bearer',
-                'expires_in' => JWTAuth::factory()->getTTL() * 60,
-            return $this->sendSuccess([], 'Successfully logged out');
+        return $this->sendResponse([
+            'user' => $user,
+            'token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
+        ], 'OTP verified successfully', 200);
+    }
+
+    /*
+     * write a function to social login a user with passport token for an api request
+     */
+    public function socialLogin(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'socialLoginName' => 'required',
+            'socialLoginToken' => 'required',
+            'role' => 'required|in:client,vehicle_owner,driver,admin',
+            'deviceId' => 'nullable|string',
+            'deviceToken' => 'nullable|string',
+            'deviceName' => 'nullable|string',
+            'deviceType' => 'nullable|string',
+            'fcmToken' => 'nullable|string',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        if (! $user) {
+            $user = User::create([
+                'email' => $request->email,
+                'name' => $request->fullName ?? $request->socialLoginName,
+                'verified_at' => $objUser->verified_at ?? Carbon::now(),
+                'status' => 'active',
+            ]);
+            $user->assignRole($request->role);
+        } elseif (! $user->hasRole($request->role)) {
+            $user->assignRole($request->role);
+        }
+
+        // Check user status
+        if ($user->status == 'rejected') {
+            return $this->sendResponse([], 'Application Rejected', 401);
+        }
+        if ($user->status != 'active') {
+            return $this->sendResponse([], 'Your account is not active. Please contact the administrator.', 403);
+        }
+
+        // Update device info
+        $user->social_login_name = $request->socialLoginName;
+        $user->social_login_token = $request->socialLoginToken;
+        $user->device_id = $request->deviceId;
+        $user->device_token = $request->deviceToken;
+        $user->device_name = $request->deviceName;
+        $user->device_type = $request->deviceType;
+        $user->fcm_token = $request->fcmToken;
+        $user->save();
+
+        // Issue JWT token
+        $token = JWTAuth::fromUser($user);
+
+        return $this->sendResponse([
+            'user' => $user,
+            'token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
+        ], 'Social login successful');
+    }
+
     /**
-            return $this->sendError('Could not logout', [], 500);
+     * Google OAuth login (stub)
+     */
+    public function google(Request $request)
+    {
         // TODO: Implement Google OAuth login
-        return response()->json([
-            'success' => false,
-            'message' => 'Google login not implemented yet.',
-        ], 501);
+        return $this->sendResponse([], 'Google login not implemented yet.', 501);
     }
 
     /**
@@ -333,12 +366,9 @@ class AuthController extends ApiBaseController
      */
     public function me()
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => auth()->user(),
-            ],
-        ]);
+        return $this->sendResponse([
+            'user' => auth()->user(),
+        ], 'Authenticated user retrieved successfully');
     }
 
     /**
@@ -349,19 +379,13 @@ class AuthController extends ApiBaseController
         try {
             $token = JWTAuth::refresh(JWTAuth::getToken());
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'token' => $token,
-                    'token_type' => 'bearer',
-                    'expires_in' => JWTAuth::factory()->getTTL() * 60,
-                ],
-            ]);
+            return $this->sendResponse([
+                'token' => $token,
+                'token_type' => 'bearer',
+                'expires_in' => JWTAuth::factory()->getTTL() * 60,
+            ], 'Token refreshed successfully');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Could not refresh token',
-            ], 401);
+            return $this->sendResponse([], 'Could not refresh token', 401);
         }
     }
 
@@ -373,15 +397,9 @@ class AuthController extends ApiBaseController
         try {
             JWTAuth::invalidate(JWTAuth::getToken());
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Successfully logged out',
-            ]);
+            return $this->sendResponse([], 'Successfully logged out');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Could not logout',
-            ], 500);
+            return $this->sendResponse([], 'Could not logout', 500);
         }
     }
 }
