@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\UsersController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\TripController;
@@ -29,6 +30,12 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+    });
+    // dd(auth()->user());
+    Route::prefix('admin')->middleware('role:admin')->group(function () {
+        // Users
+        Route::apiResource('users', UsersController::class);
+        Route::patch('users/{user}/status', [UsersController::class, 'updateStatus']); // Suspend/activate user
     });
 
     // Vehicles
