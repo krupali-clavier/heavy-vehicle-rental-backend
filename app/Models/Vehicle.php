@@ -3,35 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Vehicle extends Model
+class Vehicle extends BaseModel
 {
     use HasFactory, SoftDeletes;
-
-    protected $fillable = [
-        'owner_id',
-        'name',
-        'description',
-        'type',
-        'make',
-        'model',
-        'year',
-        'registration_number',
-        'color',
-        'hourly_rate',
-        'daily_rate',
-        'weekly_rate',
-        'monthly_rate',
-        'requires_driver',
-        'is_available',
-        'latitude',
-        'longitude',
-        'location_address',
-        'status',
-        'availability_calendar',
-    ];
 
     protected function casts(): array
     {
@@ -54,11 +30,6 @@ class Vehicle extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    public function images()
-    {
-        return $this->hasMany(VehicleImage::class);
-    }
-
     public function documents()
     {
         return $this->hasMany(VehicleDocument::class);
@@ -67,10 +38,5 @@ class Vehicle extends Model
     public function bookings()
     {
         return $this->hasMany(Booking::class);
-    }
-
-    public function primaryImage()
-    {
-        return $this->hasOne(VehicleImage::class)->where('is_primary', true);
     }
 }

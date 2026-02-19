@@ -32,20 +32,19 @@ class VehicleController extends ApiBaseController
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'owner_id' => 'required|exists:users,id',
+            'owner_id' => 'nullable|exists:users,id',
+            'registration_number' => 'required|unique:vehicles,registration_number,'.$request->id.',id,deleted_at,NULL',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|string',
-            'make' => 'nullable|string',
-            'model' => 'nullable|string',
+            'capacity' => 'required|string',
+            'engine_power' => 'required|string',
+            'fuel_type' => 'nullable|in:Diesel,Gasoline,Petrol,Electric,Hybrid,Other',
             'year' => 'nullable|integer',
-            'registration_number' => 'nullable|string',
-            'color' => 'nullable|string',
-            'daily_rate' => 'required|numeric',
-            'requires_driver' => 'boolean',
-            'is_available' => 'boolean',
-            'location_address' => 'nullable|string',
-            'status' => 'required|in:active,inactive,suspended',
+            'daily_rate' => 'required|numeric|min:0',
+            'weekly_rate' => 'required|numeric|min:0',
+            'hourly_rate' => 'required|numeric|min:0',
+            'driver_available' => 'boolean',
         ]);
         $vehicle = $this->vehicleService->createVehicle($validated);
 
